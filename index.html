@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doctor & Patient Info Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .tab {
+      margin: 0 10px;
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: #0056b3;
+    }
+    .form-container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .error {
+      color: red;
+      font-size: 14px;
+    }
+    button {
+      background: #28a745;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    table {
+      width: 90%;
+      margin: 0 auto 40px;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #007bff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Doctor & Patient Information</h2>
+
+<div class="tabs">
+  <div class="tab active" onclick="showForm('doctor')">Doctor Form</div>
+  <div class="tab" onclick="showForm('patient')">Patient Form</div>
+</div>
+
+<div class="form-container">
+  <form id="doctor-form" onsubmit="return handleSubmit('doctor')">
+    <div class="form-group">
+      <label>Name *</label>
+      <input type="text" id="doctor-name" />
+      <div class="error" id="doctor-name-error"></div>
+    </div>
+    <div class="form-group">
+      <label>Email *</label>
+      <input type="email" id="doctor-email" />
+      <div class="error" id="doctor-email-error"></div>
+    </div>
+    <div class="form-group">
+      <label>Specialization *</label>
+      <input type="text" id="doctor-specialization" />
+      <div class="error" id="doctor-specialization-error"></div>
+    </div>
+    <button type="submit">Submit Doctor Info</button>
+  </form>
+
+  <form id="patient-form" style="display: none;" onsubmit="return handleSubmit('patient')">
+    <div class="form-group">
+      <label>Name *</label>
+      <input type="text" id="patient-name" />
+      <div class="error" id="patient-name-error"></div>
+    </div>
+    <div class="form-group">
+      <label>Email *</label>
+      <input type="email" id="patient-email" />
+      <div class="error" id="patient-email-error"></div>
+    </div>
+    <div class="form-group">
+      <label>Age *</label>
+      <input type="number" id="patient-age" />
+      <div class="error" id="patient-age-error"></div>
+    </div>
+    <button type="submit">Submit Patient Info</button>
+  </form>
+</div>
+
+<h3 style="text-align:center;">Doctor Entries</h3>
+<table id="doctor-table">
+  <thead>
+    <tr><th>Name</th><th>Email</th><th>Specialization</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<h3 style="text-align:center;">Patient Entries</h3>
+<table id="patient-table">
+  <thead>
+    <tr><th>Name</th><th>Email</th><th>Age</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  window.onload = function () {
+    loadData();
+  };
+
+  function showForm(type) {
+    document.getElementById('doctor-form').style.display = type === 'doctor' ? 'block' : 'none';
+    document.getElementById('patient-form').style.display = type === 'patient' ? 'block' : 'none';
+
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    if (type === 'doctor') {
+      document.querySelectorAll('.tab')[0].classList.add('active');
+    } else {
+      document.querySelectorAll('.tab')[1].classList.add('active');
+    }
+  }
+
+  function handleSubmit(type) {
+    let valid = validateForm(type);
+    if (!valid) return false;
+
+    const data = {
+      name: document.getElementById(`${type}-name`).value.trim(),
+      email: document.getElementById(`${type}-email`).value.trim()
+    };
+
+    if (type === 'doctor') {
+      data.specialization = document.getElementById('doctor-specialization').value.trim();
+    } else {
+      data.age = parseInt(document.getElementById('patient-age').value);
+    }
+
+    saveToLocal(type, data);
+    displayData();
+    document.getElementById(`${type}-form`).reset();
+    return false;
+  }
+
+  function validateForm(type) {
+    let valid = true;
+    clearErrors(type);
+
+    const name = document.getElementById(`${type}-name`);
+    const email = document.getElementById(`${type}-email`);
+    if (name.value.trim() === "") {
+      showError(`${type}-name`, "Name is required.");
+      valid = false;
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value)) {
+      showError(`${type}-email`, "Invalid email format.");
+      valid = false;
+    }
+
+    if (type === 'doctor') {
+      const spec = document.getElementById('doctor-specialization');
+      if (spec.value.trim() === "") {
+        showError('doctor-specialization', "Specialization is required.");
+        valid = false;
+      }
+    } else {
+      const age = document.getElementById('patient-age');
+      if (age.value === "" || age.value < 0 || age.value > 120) {
+        showError('patient-age', "Age must be between 0 and 120.");
+        valid = false;
+      }
+    }
+
+    return valid;
+  }
+
+  function showError(id, message) {
+    document.getElementById(id + '-error').innerText = message;
+  }
+
+  function clearErrors(type) {
+    document.querySelectorAll(`#${type}-form .error`).forEach(el => el.innerText = "");
+  }
+
+  function saveToLocal(type, data) {
+    let entries = JSON.parse(localStorage.getItem(`${type}s`) || "[]");
+    entries.push(data);
+    localStorage.setItem(`${type}s`, JSON.stringify(entries));
+  }
+
+  function loadData() {
+    displayData();
+  }
+
+  function displayData() {
+    ['doctor', 'patient'].forEach(type => {
+      const data = JSON.parse(localStorage.getItem(`${type}s`) || "[]");
+      const tbody = document.querySelector(`#${type}-table tbody`);
+      tbody.innerHTML = "";
+
+      data.forEach(entry => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = type === 'doctor'
+          ? `<td>${entry.name}</td><td>${entry.email}</td><td>${entry.specialization}</td>`
+          : `<td>${entry.name}</td><td>${entry.email}</td><td>${entry.age}</td>`;
+        tbody.appendChild(tr);
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
